@@ -1,0 +1,28 @@
+# Environment
+.env
+.env.local
+
+# Keys - never commit
+backend/keys/
+
+# Go
+backend/bin/
+backend/vendor/
+*.test
+*.out
+
+# Node
+web/node_modules/
+web/dist/
+
+# Mobile
+mobile/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
