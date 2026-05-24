@@ -12,4 +12,8 @@ export interface Event {
 export interface EventsResponse {
     events: Event[] | null
     count: number
+    total: number
+    total_pages: number
+    page: number
+    limit: number
 }

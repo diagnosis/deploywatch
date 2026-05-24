@@ -23,7 +23,8 @@ type Event struct {
 
 type EventStore interface {
 	Create(context.Context, *Event) (*Event, error)
-	ListByRepoIDs(ctx context.Context, repoIDs []int64) ([]Event, error)
+	ListByRepoIDs(ctx context.Context, repoIDs []int64, limit, offset int) ([]Event, error)
+	CountByRepoIDs(ctx context.Context, repoIDS []int64) (int, error)
 }
 
 type PGEventStore struct {
@@ -56,9 +57,12 @@ RETURNING *`
 	}
 	return &e1, nil
 }
-func (s *PGEventStore) ListByRepoIDs(ctx context.Context, repoIDs []int64) ([]Event, error) {
-	q := `SELECT * FROM events WHERE repo_id = ANY($1) ORDER BY received_at DESC LIMIT 50`
-	rows, err := s.pool.Query(ctx, q, repoIDs)
+func (s *PGEventStore) ListByRepoIDs(ctx context.Context, repoIDs []int64, limit, offset int) ([]Event, error) {
+	if limit == 0 {
+		limit = 25
+	}
+	q := `SELECT * FROM events WHERE repo_id = ANY($1) ORDER BY received_at DESC LIMIT $2 OFFSET $3`
+	rows, err := s.pool.Query(ctx, q, repoIDs, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -80,4 +84,14 @@ func (s *PGEventStore) ListByRepoIDs(ctx context.Context, repoIDs []int64) ([]Ev
 		events = append(events, e)
 	}
 	return events, nil
+}
+
+func (s *PGEventStore) CountByRepoIDs(ctx context.Context, repoIDs []int64) (int, error) {
+	q := `SELECT COUNT(*) FROM events WHERE repo_id = ANY($1)`
+	var count int
+	err := s.pool.QueryRow(ctx, q, repoIDs).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

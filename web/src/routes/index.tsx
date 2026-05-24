@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/routeGuard.ts"
 import { useSSE } from "@/hooks/useSSE.ts"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { reposQueryOptions, useRemoveRepo } from "@/hooks/repoHooks.ts"
-import { useState } from "react"
+import {useEffect, useRef, useState} from "react"
 import { eventQueryOptions } from "@/hooks/eventHooks.ts"
 import { AddRepoModal } from "@/components/app/AddRepoModel.tsx"
 import { useLogout } from "@/hooks/authHooks.ts"
@@ -42,8 +42,40 @@ function timeAgo(date: string | Date) {
     return `${Math.floor(seconds / 86400)}d ago`
 }
 
-function EventCard({ event }: { event: Event }) {
+function getEventURL(event: Event, repoFullName: string): string {
+    const raw = event.payload
+    let p: any = {}
+    try {
+        let jsonStr: string
+        if (typeof raw === 'string') {
+            // try base64 decode first
+            try {
+                jsonStr = atob(raw)
+            } catch {
+                jsonStr = raw
+            }
+            p = JSON.parse(jsonStr)
+        }
+    } catch {
+        return `https://github.com/${repoFullName}`
+    }
+    switch (event.event_type) {
+        case 'push':
+            return `https://github.com/${repoFullName}/commit/${p.after}`
+        case 'pull_request':
+            return `https://github.com/${repoFullName}/pull/${p.number}`
+        case 'pull_request_review':
+            return `https://github.com/${repoFullName}/pull/${p.pull_request?.number}`
+        case 'create':
+            return `https://github.com/${repoFullName}/tree/${p.ref}`
+        default:
+            return `https://github.com/${repoFullName}`
+    }
+}
+
+function EventCard({ event, repoFullName }: {event: Event; repoFullName: string}  ) {
     return (
+        <a href={getEventURL(event, repoFullName)} target="_blank" rel="noopener noreferrer">
         <div className="flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.04] hover:bg-cyan-500/[0.02] transition-colors group">
             <div className="mt-0.5 w-7 h-7 rounded-lg bg-[#0d1f2d] border border-cyan-500/10 flex items-center justify-center flex-shrink-0 group-hover:border-cyan-500/20 transition-colors">
                 {eventIcon(event.event_type)}
@@ -67,23 +99,34 @@ function EventCard({ event }: { event: Event }) {
             {/* Live dot */}
             <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/30 mt-1.5 flex-shrink-0" />
         </div>
+        </a>
     )
 }
 
+
+
 function RouteComponent() {
     useSSE()
-
+    const [page, setPage] = useState(1)
     const { data: watchedRepos } = useSuspenseQuery(reposQueryOptions())
     const [selectedRepo, setSelectedRepo] = useState<number | undefined>(undefined)
-    const events = useSuspenseQuery(eventQueryOptions(selectedRepo))
+    const events = useSuspenseQuery(eventQueryOptions(selectedRepo, page))
     const [showAddModal, setShowAddModal] = useState(false)
     const removeRepo = useRemoveRepo()
     const logout = useLogout()
-
+    const prevRepoRef = useRef(selectedRepo)
     const selectedRepoName = watchedRepos.find(r => r.repo_id === selectedRepo)?.repo_full_name
-    console.log('events',events)
+
+    useEffect(() => {
+        if (prevRepoRef.current !== selectedRepo) {
+            prevRepoRef.current = selectedRepo
+            if (page !== 1) setPage(1)
+        }
+    }, [page, selectedRepo]);
+
+
     return (
-        <div className="min-h-screen bg-[#080d12] flex flex-col">
+        <div className="h-screen bg-[#080d12] flex flex-col">
 
             {/* Ambient glow */}
             <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-cyan-500/[0.03] blur-[100px] pointer-events-none" />
@@ -166,7 +209,7 @@ function RouteComponent() {
                                             onClick={e => { e.stopPropagation(); removeRepo.mutate(repo.repo_id) }}
                                             className="opacity-0 group-hover:opacity-100 transition-opacity text-white/15 hover:text-red-400/70"
                                         >
-                                            <FaTrash size={8} />
+                                            <FaTrash size={10} />
                                         </button>
                                     </div>
                                 ))}
@@ -177,35 +220,64 @@ function RouteComponent() {
 
                 {/* Main */}
                 <main className="flex-1 flex flex-col overflow-hidden">
+                    {/* Header */}
                     <div className="px-4 py-2.5 border-b border-cyan-500/[0.06] flex items-center gap-2 bg-[#080d12]/50">
                         <FaCodeBranch size={11} className="text-cyan-500/30" />
                         <span className="text-white/40 text-sm font-mono">
-                            {selectedRepoName ?? 'all repos'}
-                        </span>
-                        <span className="text-cyan-500/20 text-xs ml-auto font-mono">
-                            {events.data?.length ?? 0} events
-                        </span>
+            {selectedRepoName ?? 'all repos'}
+        </span>
+                        <span className="text-cyan-500/40 text-xs ml-auto font-mono">
+            {events.data?.total} events
+        </span>
                     </div>
 
+                    {/* Event list */}
                     <div className="flex-1 overflow-y-auto">
-                        {!events.data || events.data.length === 0 ? (
+                        {!events.data?.events || events.data.events.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center">
-                                <div className="w-12 h-12 rounded-2xl bg-cyan-500/[0.04] border border-cyan-500/10 flex items-center justify-center mb-4">
-                                    <FaBolt size={18} className="text-cyan-500/20" />
-                                </div>
-                                <p className="text-white/20 text-sm">No events yet</p>
-                                <p className="text-white/10 text-xs mt-1.5">Push to a watched repo to see live events</p>
+                                ...empty state...
                             </div>
                         ) : (
-                            events.data.map(event => (
-                                <EventCard key={event.id} event={event} />
+                            events.data.events.map(event => (
+                                <EventCard
+                                    key={event.id}
+                                    event={event}
+                                    repoFullName={watchedRepos.find(r => r.repo_id === event.repo_id)?.repo_full_name ?? ''}
+                                />
                             ))
                         )}
                     </div>
+                    {/* Pagination */}
+                    {events.data?.total_pages > 1 && (
+                        <div className="flex items-center justify-between px-4 py-3 border-t border-cyan-500/[0.06]">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="text-xs text-cyan-400/60 hover:text-cyan-400 disabled:opacity-20 transition-colors"
+                            >
+                                ← Prev
+                            </button>
+                            <span className="text-white/20 text-xs font-mono">
+            {page} / {events.data.total_pages}
+        </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(events.data.total_pages, p + 1))}
+                                disabled={page === events.data?.total_pages}
+                                className="text-xs text-cyan-400/60 hover:text-cyan-400 disabled:opacity-20 transition-colors"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    )}
                 </main>
             </div>
 
             {showAddModal && <AddRepoModal onClose={() => setShowAddModal(false)} />}
+            <footer className="h-8 border-t border-cyan-500/[0.06] flex items-center justify-between px-4 bg-[#080d12]">
+                <span className="text-white/30 text-xs font-mono">deploywatch v1.0</span>
+                <span className="text-white/30 text-xs">built by <span className="text-cyan-400/50">diagnosis</span></span>
+            </footer>
         </div>
+
     )
 }

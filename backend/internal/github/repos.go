@@ -19,7 +19,7 @@ type reposResponse struct {
 }
 
 func (g *GitHubClient) ListInstallationRepos(ctx context.Context, token string, installationID int64) ([]Repo, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/installation/repositories", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/installation/repositories?per_page=200", nil)
 	if err != nil {
 		return nil, err
 	}

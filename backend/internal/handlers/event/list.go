@@ -45,16 +45,43 @@ func (h *EventHandler) HandleListEvent(w http.ResponseWriter, r *http.Request) {
 			repoIDs = []int64{repoID}
 		}
 	}
+	var limit int
+	limitStr := r.URL.Query().Get("limit")
+	if limitStr != "" {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			logger.Warn(ctx, "limit not set", "err", err)
+		}
+	}
 
-	events, err := h.eventStore.ListByRepoIDs(ctx, repoIDs)
+	page := 1
+	pageStr := r.URL.Query().Get("page")
+	if pageStr != "" {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil {
+			logger.Warn(ctx, "offset not set", "err", err)
+		}
+		if page < 1 {
+			page = 1
+		}
+	}
+	offset := (page - 1) * limit
+	events, err := h.eventStore.ListByRepoIDs(ctx, repoIDs, limit, offset)
 	if err != nil {
 		logger.Error(ctx, "failed to get events", "err", err)
 		responder.Error(w, err, correlationID)
 		return
 	}
-	count := len(events)
+
+	total, err := h.eventStore.CountByRepoIDs(ctx, repoIDs)
+	totalPages := (total + limit - 1) / limit
+
 	responder.JSON(w, http.StatusOK, map[string]any{
-		"events": events,
-		"count":  count,
+		"events":      events,
+		"count":       len(events),
+		"total":       total,
+		"total_pages": totalPages,
+		"page":        page,
+		"limit":       limit,
 	}, correlationID)
 }
