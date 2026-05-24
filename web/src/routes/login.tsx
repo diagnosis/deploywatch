@@ -1,7 +1,7 @@
 // src/routes/login.tsx
 import { createFileRoute } from '@tanstack/react-router'
 import {FaGithub, FaBell, FaBolt, FaCodeBranch, FaLifeRing, FaStream, FaSign, FaSignal} from 'react-icons/fa'
-
+import { BASE_URL } from '@/lib/config.ts'
 export const Route = createFileRoute('/login')({
     component: LoginPage,
 })
@@ -62,7 +62,7 @@ function LoginPage() {
 
                     {/* CTA */}
                     <a
-                        href="http://localhost:8080/api/auth/github/login"
+                        href={`${BASE_URL}/api/auth/github/login`}
                         className="flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-xl bg-white text-[#0a0a0f] font-medium text-sm hover:bg-white/90 transition-colors duration-150"
                     >
                         <FaGithub size={16} />

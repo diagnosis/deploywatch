@@ -159,8 +159,8 @@ func (h *AuthHandler) setRefreshCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		MaxAge:   int(h.jwt.RefreshExpiry().Seconds()),
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 	})
 }
 func (h *AuthHandler) setAccessCookie(w http.ResponseWriter, token string) {
@@ -171,8 +171,8 @@ func (h *AuthHandler) setAccessCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		MaxAge:   int(h.jwt.AccessExpiry().Seconds()),
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 	})
 }
 func (h *AuthHandler) clearAccessCookie(w http.ResponseWriter) {
