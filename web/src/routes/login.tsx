@@ -1,6 +1,6 @@
 // src/routes/login.tsx
 import { createFileRoute } from '@tanstack/react-router'
-import {FaGithub, FaBell, FaBolt, FaCodeBranch, FaLifeRing, FaStream, FaSign, FaSignal} from 'react-icons/fa'
+import {FaGithub, FaBell, FaBolt, FaCodeBranch, FaSignal} from 'react-icons/fa'
 import { BASE_URL } from '@/lib/config.ts'
 export const Route = createFileRoute('/login')({
     component: LoginPage,
