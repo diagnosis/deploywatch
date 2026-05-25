@@ -22,5 +22,5 @@ jobs:
           script: |
             cd ~/deploywatch/backend
             git pull
-            go build -o bin/api ./cmd/api
+            /usr/local/go/bin/go build -o bin/api ./cmd/api
             sudo systemctl restart deploywatch
