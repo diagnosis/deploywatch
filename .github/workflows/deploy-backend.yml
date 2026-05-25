@@ -20,7 +20,5 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            cd ~/deploywatch/backend
-            git pull
-            /usr/local/go/bin/go build -o bin/api ./cmd/api
-            sudo /usr/local/bin/restart-deploywatch.sh
+            whoami
+            pwd
