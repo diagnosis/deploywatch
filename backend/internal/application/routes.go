@@ -27,6 +27,7 @@ func SetupRoutes(app *Application) *chi.Mux {
 	r.Get("/api/auth/github/login", app.authHandler.HandleLogin)
 	r.Get("/api/auth/github/callback", app.authHandler.HandleCallBack)
 	r.Post("/api/auth/refresh", app.authHandler.HandleRefresh)
+	r.Post("/api/auth/refresh/mobile", app.authHandler.HandleMobileRefresh)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth(app.authHandler.AuthFunc))
 		r.Get("/api/auth/me", app.authHandler.HandleMe)
