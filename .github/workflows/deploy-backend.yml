@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -20,5 +21,9 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            whoami
-            pwd
+            cd ~/deploywatch/backend
+            git pull
+            /usr/local/go/bin/go build -o bin/api ./cmd/api
+            pkill -f "bin/api" || true
+            sleep 1
+            nohup ./bin/api > /tmp/deploywatch.log 2>&1 &
