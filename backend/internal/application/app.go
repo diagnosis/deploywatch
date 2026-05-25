@@ -1,4 +1,4 @@
-// backend/internal/application/app.go
+// /backend/internal/application/app.go
 package application
 
 import (
