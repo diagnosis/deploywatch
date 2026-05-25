@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/diagnosis/deploywatchv2/internal/config"
 	refreshtokenstore "github.com/diagnosis/deploywatchv2/internal/store/refreshtoken"
@@ -31,6 +32,20 @@ func NewAuthHandler(
 }
 
 func (h *AuthHandler) AuthFunc(r *http.Request) (string, error) {
+	// Try Bearer token first (mobile)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			claims, err := h.jwt.VerifyAccess(parts[1])
+			if err != nil {
+				return "", err
+			}
+			return claims.Sub, nil
+		}
+	}
+
+	// Fall back to cookie (web)
 	cookie, err := r.Cookie("access_token")
 	if err != nil {
 		return "", err

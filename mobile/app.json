@@ -1,6 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
+    "scheme": "deploywatch" ,
+    "name": "deploywatch",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
