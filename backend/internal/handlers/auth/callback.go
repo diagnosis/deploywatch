@@ -98,6 +98,14 @@ func (h *AuthHandler) HandleCallBack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Mobile flow
+	mobileCookie, err := r.Cookie("mobile_redirect")
+	if err == nil {
+		mobileRedirect := fmt.Sprintf("%s?access_token=%s&refresh_token=%s", mobileCookie.Value, token, raw)
+		http.Redirect(w, r, mobileRedirect, http.StatusTemporaryRedirect)
+		return
+	}
+
 	h.setRefreshCookie(w, raw)
 	h.setAccessCookie(w, token)
 

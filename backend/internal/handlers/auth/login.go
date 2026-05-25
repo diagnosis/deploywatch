@@ -22,6 +22,20 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	h.setStateTokenCookie(w, stateToken)
 
+	// Store mobile params if present
+	if r.URL.Query().Get("mobile") == "true" {
+		redirectURI := r.URL.Query().Get("redirect_uri")
+		http.SetCookie(w, &http.Cookie{
+			Name:     "mobile_redirect",
+			Value:    redirectURI,
+			Path:     "/",
+			MaxAge:   int(15 * time.Minute.Seconds()),
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteNoneMode,
+		})
+	}
+
 	githubURL := fmt.Sprintf(
 		"https://github.com/login/oauth/authorize?client_id=%s&state=%s&scope=read:user,user:email",
 		h.cfg.GitHub.GitHubOauthClientID,
@@ -37,7 +51,7 @@ func (h *AuthHandler) setStateTokenCookie(w http.ResponseWriter, token string) {
 		Path:     "/",
 		MaxAge:   int(15 * time.Minute.Seconds()),
 		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		SameSite: http.SameSiteNoneMode,
 	})
 }
