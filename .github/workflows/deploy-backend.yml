@@ -24,6 +24,7 @@ jobs:
             cd ~/deploywatch/backend
             git pull
             /usr/local/go/bin/go build -o bin/api ./cmd/api
-            pkill -f "deploywatch/backend/bin/api" || true
+            pkill -f "backend/bin/api" || true
             sleep 1
-            nohup ./bin/api > /tmp/deploywatch.log 2>&1 &
+            nohup ./bin/api > /tmp/deploywatch.log 2>&1 </dev/null &
+            disown
