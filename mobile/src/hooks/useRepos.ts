@@ -20,8 +20,8 @@ export function useGitHubRepos() {
 export function useWatchRepo() {
     const queryClient = useQueryClient()
     return useMutation({
-        mutationFn: ({ repoId, repoFullName }: { repoId: number; repoFullName: string }) =>
-            watchRepo(repoId, repoFullName),
+        mutationFn: ({ repoId, repoFullName, installationId }: { repoId: number; repoFullName: string; installationId: number }) =>
+            watchRepo(repoId, repoFullName, installationId),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['repos'] }),
     })
 }

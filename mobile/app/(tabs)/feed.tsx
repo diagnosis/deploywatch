@@ -1,4 +1,4 @@
-import { View, Text, FlatList, RefreshControl, Pressable, ActivityIndicator } from 'react-native'
+import { View, Text, FlatList, RefreshControl, Pressable, ActivityIndicator, ScrollView } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useState } from 'react'
 import { useEvents } from '@/src/hooks/useEvents'
@@ -41,19 +41,7 @@ function getEventURL(event: Event, repoFullName: string): string {
 
 function EventCard({ event, repoFullName }: { event: Event; repoFullName: string }) {
     return (
-        <Pressable
-            onPress={() => Linking.openURL(getEventURL(event, repoFullName))}
-            style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.border,
-                backgroundColor: pressed ? colors.primaryDim : 'transparent',
-            })}
-        >
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
             <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' }}>
                 <Ionicons
                     name={event.event_type === 'push' ? 'git-commit' : event.event_type === 'pull_request' ? 'git-pull-request' : 'flash'}
@@ -76,8 +64,15 @@ function EventCard({ event, repoFullName }: { event: Event; repoFullName: string
                     <Text style={{ color: colors.textDim, fontSize: 12 }}>·</Text>
                     <Text style={{ color: colors.textDim, fontSize: 12 }}>{timeAgo(event.received_at)}</Text>
                 </View>
+                <Pressable
+                    onPress={() => Linking.openURL(getEventURL(event, repoFullName))}
+                    style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, opacity: pressed ? 0.6 : 1, alignSelf: 'flex-start' })}
+                >
+                    <Ionicons name="open-outline" size={12} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 12 }}>View on GitHub</Text>
+                </Pressable>
             </View>
-        </Pressable>
+        </View>
     )
 }
 
@@ -86,8 +81,13 @@ export default function FeedScreen() {
     const [page, setPage] = useState(1)
     const { data: repos } = useWatchedRepos()
     const { data, isPending, isRefetching, refetch } = useEvents(selectedRepo, page)
-    const repoName = repos?.find(r => r.repo_id === selectedRepo)?.repo_full_name
-
+    const repoName = Array.isArray(repos)
+        ? repos.find(r => r.repo_id === selectedRepo)?.repo_full_name
+        : undefined
+    const [showRepoPicker, setShowRepoPicker] = useState(false)
+    const selectedRepoName = selectedRepo === undefined
+        ? 'All repos'
+        : repos?.find(r => r.repo_id === selectedRepo)?.repo_full_name?.split('/')[1] ?? 'All repos'
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
             {/* Header */}
@@ -103,34 +103,43 @@ export default function FeedScreen() {
             </View>
 
             {/* Repo filter */}
-            <FlatList
-                horizontal
-                data={[{ id: -1, repo_id: -1, repo_full_name: 'All repos', created_at: '' }, ...(repos ?? [])]}
-                keyExtractor={item => String(item.repo_id)}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 8 , alignItems:'center'}}
-                renderItem={({ item }) => {
-                    const isSelected = item.repo_id === -1 ? selectedRepo === undefined : selectedRepo === item.repo_id
-                    return (
-                        <Pressable
-                            onPress={() => {
-                                setSelectedRepo(item.repo_id === -1 ? undefined : item.repo_id)
-                                setPage(1)
-                            }}
-                            style={{
-                                paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-                                backgroundColor: isSelected ? colors.primaryDim : colors.surface,
-                                borderWidth: 1, borderColor: isSelected ? colors.primary : colors.border,
-                            }}
-                        >
-                            <Text style={{ color: isSelected ? colors.primary : colors.textSecondary, fontSize: 12, fontFamily: 'monospace' }}>
-                                {item.repo_full_name}
-                            </Text>
-                        </Pressable>
-                    )
-                }}
-            />
+            {/* Repo filter dropdown */}
+            <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <Pressable
+                    onPress={() => setShowRepoPicker(!showRepoPicker)}
+                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 }}
+                >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="git-branch-outline" size={14} color={colors.primary} />
+                        <Text style={{ color: colors.primary, fontSize: 13, fontFamily: 'monospace' }}>{selectedRepoName}</Text>
+                    </View>
+                    <Ionicons name={showRepoPicker ? 'chevron-up' : 'chevron-down'} size={14} color={colors.textSecondary} />
+                </Pressable>
 
+                {showRepoPicker && (
+                    <View style={{ backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border }}>
+                        {[{ repo_id: -1, repo_full_name: 'All repos' }, ...(repos ?? [])].map(item => {
+                            const isSelected = item.repo_id === -1 ? selectedRepo === undefined : selectedRepo === item.repo_id
+                            return (
+                                <Pressable
+                                    key={String(item.repo_id)}
+                                    onPress={() => {
+                                        setSelectedRepo(item.repo_id === -1 ? undefined : item.repo_id)
+                                        setPage(1)
+                                        setShowRepoPicker(false)
+                                    }}
+                                    style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                                >
+                                    <Text style={{ color: isSelected ? colors.primary : colors.textSecondary, fontSize: 13, fontFamily: 'monospace' }}>
+                                        {item.repo_full_name === 'All repos' ? 'All repos' : item.repo_full_name}
+                                    </Text>
+                                    {isSelected && <Ionicons name="checkmark" size={14} color={colors.primary} />}
+                                </Pressable>
+                            )
+                        })}
+                    </View>
+                )}
+            </View>
             {/* Events */}
             {isPending ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

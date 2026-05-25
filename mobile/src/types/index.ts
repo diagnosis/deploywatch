@@ -4,7 +4,16 @@ export interface User {
     name?: string
     avatar_url?: string
     email?: string
+    git_hub_id?: number
 }
+
+export interface GitHubRepo {
+    id: number
+    name: string
+    full_name: string
+    installation_id: number
+}
+
 
 export interface WatchedRepo {
     id: number
