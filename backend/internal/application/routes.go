@@ -10,6 +10,8 @@ import (
 func SetupRoutes(app *Application) *chi.Mux {
 	allowedOrigins := []string{
 		"http://localhost:5173",
+		"https://deploywatch.safadev.app/",
+		"https://deploywatch.safadev.app",
 	}
 
 	r := chi.NewRouter()
