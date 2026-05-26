@@ -12,6 +12,7 @@ type Config struct {
 	App      AppConfig
 	JWT      JWTConfig
 	GitHub   GitHubConfig
+	APNS     APNSConfig
 }
 
 type DatabaseConfig struct {
@@ -47,6 +48,12 @@ type GitHubConfig struct {
 	GitHubWebhookSecret     string
 	GitHubOauthClientID     string
 	GitHubOauthClientSecret string
+}
+type APNSConfig struct {
+	KeyID    string
+	TeamID   string
+	BundleID string
+	KeyPath  string
 }
 
 func Load() (*Config, error) {
@@ -126,6 +133,12 @@ func Load() (*Config, error) {
 			GitHubWebhookSecret:     webhookSecret,
 			GitHubOauthClientID:     oauthClientID,
 			GitHubOauthClientSecret: oauthClientSecret,
+		},
+		APNS: APNSConfig{
+			KeyID:    getEnv("APNS_KEY_ID", ""),
+			TeamID:   getEnv("APNS_TEAM_ID", ""),
+			BundleID: getEnv("APNS_BUNDLE_ID", ""),
+			KeyPath:  getEnv("APNS_KEY_PATH", ""),
 		},
 	}, nil
 }

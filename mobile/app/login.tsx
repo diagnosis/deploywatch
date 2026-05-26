@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { loginWithGithub } from '@/src/services/auth'
 import { colors } from '@/src/styles/colors'
 import { Ionicons } from '@expo/vector-icons'
+import {registerForPushNotifications} from "@/src/services/notifications";
 
 export default function LoginScreen() {
     const router = useRouter()
@@ -16,6 +17,7 @@ export default function LoginScreen() {
         try {
             const success = await loginWithGithub()
             if (success) {
+                await registerForPushNotifications()
                 router.replace('/(tabs)/feed')
             } else {
                 setError('Login cancelled or failed. Try again.')

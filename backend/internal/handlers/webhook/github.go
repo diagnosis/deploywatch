@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -93,6 +94,27 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			Type: eventType,
 			Data: string(b),
 		})
+	}
+
+	if h.apnsClient != nil {
+		for _, userID := range userIDs {
+			tokens, err := h.deviceTokenStore.GetByUserID(ctx, userID)
+			if err != nil {
+				logger.Error(ctx, "failed to get device tokens", "err", err)
+				continue
+			}
+			for _, t := range tokens {
+				go func(token string) {
+					title := eventType
+					body := fmt.Sprintf("%s by %s", payload.Repository.ID, payload.Sender.Login)
+					if err := h.apnsClient.Send(token, title, body); err != nil {
+						logger.Error(ctx, " failed to send push", "err", err)
+					}
+
+				}(t.Token)
+			}
+		}
+
 	}
 
 	responder.JSON(w, http.StatusOK, nil, correlationID)

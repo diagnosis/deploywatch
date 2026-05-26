@@ -5,17 +5,20 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/diagnosis/deploywatchv2/internal/apns"
 	"github.com/diagnosis/deploywatchv2/internal/config"
 	"github.com/diagnosis/deploywatchv2/internal/database"
 	"github.com/diagnosis/deploywatchv2/internal/events"
 	"github.com/diagnosis/deploywatchv2/internal/github"
 	authhandler "github.com/diagnosis/deploywatchv2/internal/handlers/auth"
+	devicetokenhandler "github.com/diagnosis/deploywatchv2/internal/handlers/devicetoken"
 	eventhandler "github.com/diagnosis/deploywatchv2/internal/handlers/event"
 	githubclienthandlers "github.com/diagnosis/deploywatchv2/internal/handlers/github"
 	healthhandler "github.com/diagnosis/deploywatchv2/internal/handlers/health"
 	watchedrepohandlers "github.com/diagnosis/deploywatchv2/internal/handlers/repo"
 	ssehandlers "github.com/diagnosis/deploywatchv2/internal/handlers/sse"
 	webhookhandler "github.com/diagnosis/deploywatchv2/internal/handlers/webhook"
+	devicetokenstore "github.com/diagnosis/deploywatchv2/internal/store/devicetoken"
 	eventstore "github.com/diagnosis/deploywatchv2/internal/store/event"
 
 	"github.com/diagnosis/deploywatchv2/internal/store/installation"
@@ -31,12 +34,14 @@ type Application struct {
 	jwt          *secure.JWTSigner
 	Hub          *events.Hub
 	gitHubClient *github.GitHubClient
+	APNSClient   *apns.Client
 	// stores
 	userStore         userstore.UserStore
 	refreshTokenStore refreshtokenstore.RefreshTokenStore
 	eventStore        eventstore.EventStore
 	watchedRepos      watchedrepo.WatchedRepoStore
 	installationStore installation.InstallationStore
+	deviceTokenStore  devicetokenstore.DeviceTokenStore
 	//handlers
 	healthHandler       *healthhandler.HealthHandler
 	authHandler         *authhandler.AuthHandler
@@ -45,6 +50,7 @@ type Application struct {
 	watchedRepoHandler  *watchedrepohandlers.WatchedRepoHandler
 	eventHandler        *eventhandler.EventHandler
 	gitHubClientHandler *githubclienthandlers.GitHubHandler
+	deviceTokenHandler  *devicetokenhandler.DeviceTokenHandler
 }
 
 func NewApplication() (*Application, error) {
@@ -62,6 +68,10 @@ func NewApplication() (*Application, error) {
 
 	hub := events.NewHub()
 	gitHubClient := github.NewGitHubClient(cfg)
+	APNSClient, err := apns.New(cfg.APNS)
+	if err != nil {
+		logger.Error(ctx, "failed to fetch apns client", "err", err)
+	}
 
 	jwt, err := secure.NewJWTSigner(secure.JWTConfig{
 		AccessSecret:       cfg.JWT.AccessSecret,
@@ -81,23 +91,28 @@ func NewApplication() (*Application, error) {
 	eventStore := eventstore.NewPGEventStore(pool)
 	watchedRepoStore := watchedrepo.NewPGWatchedRepoStore(pool)
 	installationStore := installation.NewPGInstallationStore(pool)
+	deviceTokenStore := devicetokenstore.NewPGDeviceTokenStore(pool)
 	// handlers
 	healthHandler := healthhandler.NewHealthHandler()
 	authHandler := authhandler.NewAuthHandler(cfg, jwt, userStore, refreshTokenStore)
-	webhookHandler := webhookhandler.NewWebhookHandler(cfg, hub, eventStore, watchedRepoStore, installationStore, userStore)
+	webhookHandler := webhookhandler.NewWebhookHandler(cfg, hub, eventStore, watchedRepoStore, installationStore, userStore, APNSClient, deviceTokenStore)
 	sseHandler := ssehandlers.NewSSEHandler(hub)
 	watchedRepoHandler := watchedrepohandlers.NewWatchRepoHandler(watchedRepoStore, installationStore)
 	eventHandler := eventhandler.NewEventHandler(eventStore, watchedRepoStore)
 	gitHubClientHandler := githubclienthandlers.NewGitHubHandler(gitHubClient, installationStore)
+	deviceTokenHandler := devicetokenhandler.NewDeviceTokenHandler(deviceTokenStore)
 	return &Application{
-		jwt:                 jwt,
-		Hub:                 hub,
-		gitHubClient:        gitHubClient,
-		userStore:           userStore,
-		refreshTokenStore:   refreshTokenStore,
-		eventStore:          eventStore,
-		installationStore:   installationStore,
-		watchedRepos:        watchedRepoStore,
+		jwt:               jwt,
+		Hub:               hub,
+		gitHubClient:      gitHubClient,
+		APNSClient:        APNSClient,
+		userStore:         userStore,
+		refreshTokenStore: refreshTokenStore,
+		eventStore:        eventStore,
+		installationStore: installationStore,
+		watchedRepos:      watchedRepoStore,
+		deviceTokenStore:  deviceTokenStore,
+
 		healthHandler:       healthHandler,
 		authHandler:         authHandler,
 		webhookHandler:      webhookHandler,
@@ -105,5 +120,6 @@ func NewApplication() (*Application, error) {
 		watchedRepoHandler:  watchedRepoHandler,
 		eventHandler:        eventHandler,
 		gitHubClientHandler: gitHubClientHandler,
+		deviceTokenHandler:  deviceTokenHandler,
 	}, nil
 }
