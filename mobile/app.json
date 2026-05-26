@@ -1,6 +1,6 @@
 {
   "expo": {
-    "scheme": "deploywatch" ,
+    "scheme": "deploywatch",
     "name": "deploywatch",
     "slug": "mobile",
     "version": "1.0.0",
@@ -9,7 +9,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.safadev.deploywatch"
+      "bundleIdentifier": "app.safadev.deploywatch",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +21,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "app.safadev.deploywatch"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -28,6 +32,12 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "820490fb-9d81-42b7-8424-431e8dae40e9"
+      }
+    }
   }
 }
