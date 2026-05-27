@@ -94,6 +94,10 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			Type: eventType,
 			Data: string(b),
 		})
+		h.wsHub.BroadcastToUser(userID, events.Event{
+			Type: eventType,
+			Data: string(b),
+		})
 	}
 
 	if h.apnsClient != nil {

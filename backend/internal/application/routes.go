@@ -40,6 +40,7 @@ func SetupRoutes(app *Application) *chi.Mux {
 		r.Get("/api/events", app.eventHandler.HandleListEvent)
 		r.Get("/api/github/repos", app.gitHubClientHandler.HandleListRepos)
 		r.Post("/api/device-tokens", app.deviceTokenHandler.HandleRegister)
+		r.Get("/api/ws", app.wsHandler.HandleWS)
 	})
 
 	r.Post("/webhooks/github", app.webhookHandler.HandleWebhook)

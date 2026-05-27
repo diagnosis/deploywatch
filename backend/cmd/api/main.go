@@ -42,6 +42,7 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 	go app.Hub.Run(ctx)
+	go app.WsHub.Run(ctx)
 	go func() {
 		logger.Info(ctx, "server starting", "addr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

@@ -14,6 +14,7 @@ import (
 type WebhookHandler struct {
 	cfg               *config.Config
 	hub               *events.Hub
+	wsHub             *events.WSHub
 	eventStore        eventstore.EventStore
 	watchedRepo       watchedrepo.WatchedRepoStore
 	installationStore installation.InstallationStore
@@ -25,6 +26,7 @@ type WebhookHandler struct {
 func NewWebhookHandler(
 	cfg *config.Config,
 	hub *events.Hub,
+	wsHub *events.WSHub,
 	eventStore eventstore.EventStore,
 	watchedRepos watchedrepo.WatchedRepoStore,
 	installationStore installation.InstallationStore,
@@ -35,6 +37,7 @@ func NewWebhookHandler(
 	return &WebhookHandler{
 		cfg,
 		hub,
+		wsHub,
 		eventStore,
 		watchedRepos,
 		installationStore,
