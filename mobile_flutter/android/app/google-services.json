@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "340933120876",
+    "project_id": "deploywatch",
+    "storage_bucket": "deploywatch.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:340933120876:android:2a05b3bebec78d2ef45949",
+        "android_client_info": {
+          "package_name": "app.safadev.deploywatch.mobile_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAX7Oyjzfy0nU_haTgvNvAEXKsFNgoqiPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

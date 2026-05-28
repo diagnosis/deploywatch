@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -186,6 +188,21 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   bool _showRepoPicker = false;
+  Timer? _timer;
+
+  @override
+  void initState(){
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_){
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +211,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final reposAsync   = ref.watch(watchedReposProvider);
     final selectedRepo = ref.watch(selectedRepoIdProvider);
     final currentPage  = ref.watch(currentPageProvider);
-    ref.watch(webSocketNotifierProvider);
+    ref.watch(sseNotifierProvider);
     final repos = reposAsync.valueOrNull ?? [];
 
     final selectedRepoName = selectedRepo == null

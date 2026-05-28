@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"github.com/diagnosis/deploywatchv2/internal/apns"
 	"github.com/diagnosis/deploywatchv2/internal/config"
 	"github.com/diagnosis/deploywatchv2/internal/events"
+	"github.com/diagnosis/deploywatchv2/internal/fcm"
 	devicetokenstore "github.com/diagnosis/deploywatchv2/internal/store/devicetoken"
 	eventstore "github.com/diagnosis/deploywatchv2/internal/store/event"
 	"github.com/diagnosis/deploywatchv2/internal/store/installation"
@@ -19,7 +19,7 @@ type WebhookHandler struct {
 	watchedRepo       watchedrepo.WatchedRepoStore
 	installationStore installation.InstallationStore
 	userStore         userstore.UserStore
-	apnsClient        *apns.Client
+	fcm               *fcm.Client
 	deviceTokenStore  devicetokenstore.DeviceTokenStore
 }
 
@@ -31,7 +31,7 @@ func NewWebhookHandler(
 	watchedRepos watchedrepo.WatchedRepoStore,
 	installationStore installation.InstallationStore,
 	userStore userstore.UserStore,
-	apnsClient *apns.Client,
+	fcm *fcm.Client,
 	deviceTokenStore devicetokenstore.DeviceTokenStore,
 ) *WebhookHandler {
 	return &WebhookHandler{
@@ -42,7 +42,7 @@ func NewWebhookHandler(
 		watchedRepos,
 		installationStore,
 		userStore,
-		apnsClient,
+		fcm,
 		deviceTokenStore,
 	}
 }

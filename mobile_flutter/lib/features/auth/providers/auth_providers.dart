@@ -17,10 +17,14 @@ final authServiceProvider = Provider<AuthService>((ref) {
 class AuthNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    // Runs once when the provider is first read
-    // Checks if we have a stored token
     final tokenStore = ref.read(tokenStoreProvider);
-    return tokenStore.hasToken();
+    final hasToken = await tokenStore.hasToken();
+    if (hasToken) {
+      Future.microtask(() =>
+          ref.read(notificationServiceProvider).initialize()
+      );
+    }
+    return hasToken;
   }
 
   Future<bool> login() async {
@@ -28,6 +32,7 @@ class AuthNotifier extends AsyncNotifier<bool> {
     final success = await authService.loginWithGithub();
     if (success) {
       state = const AsyncValue.data(true);
+      await ref.read(notificationServiceProvider).initialize();
     }
     return success;
   }

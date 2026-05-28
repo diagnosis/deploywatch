@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/router.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(
     const ProviderScope(
       child: DeployWatchApp(),
@@ -12,17 +17,12 @@ void main() {
   );
 }
 
-// ConsumerWidget = a widget that can read Riverpod providers
-// Use this instead of StatelessWidget when you need providers
 class DeployWatchApp extends ConsumerWidget {
   const DeployWatchApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ref.watch() here means: rebuild this widget when router changes
-    // router changes when auth state changes → redirects automatically
     final router = ref.watch(routerProvider);
-
     return MaterialApp.router(
       title: 'DeployWatch',
       debugShowCheckedModeBanner: false,

@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/diagnosis/deploywatchv2/internal/apns"
 	"github.com/diagnosis/deploywatchv2/internal/config"
 	"github.com/diagnosis/deploywatchv2/internal/database"
 	"github.com/diagnosis/deploywatchv2/internal/events"
+	"github.com/diagnosis/deploywatchv2/internal/fcm"
 	"github.com/diagnosis/deploywatchv2/internal/github"
 	authhandler "github.com/diagnosis/deploywatchv2/internal/handlers/auth"
 	devicetokenhandler "github.com/diagnosis/deploywatchv2/internal/handlers/devicetoken"
@@ -36,7 +36,7 @@ type Application struct {
 	Hub          *events.Hub
 	WsHub        *events.WSHub
 	gitHubClient *github.GitHubClient
-	APNSClient   *apns.Client
+	FCMClient    *fcm.Client
 	// stores
 	userStore         userstore.UserStore
 	refreshTokenStore refreshtokenstore.RefreshTokenStore
@@ -72,9 +72,9 @@ func NewApplication() (*Application, error) {
 	hub := events.NewHub()
 	wsHub := events.NewWSHub()
 	gitHubClient := github.NewGitHubClient(cfg)
-	APNSClient, err := apns.New(cfg.APNS)
+	fcmClient, err := fcm.New(cfg.FCM.ProjectID, cfg.FCM.KeyPath)
 	if err != nil {
-		logger.Error(ctx, "failed to fetch apns client", "err", err)
+		logger.Error(ctx, "failed to fetch fcm client", "err", err)
 	}
 
 	jwt, err := secure.NewJWTSigner(secure.JWTConfig{
@@ -107,7 +107,7 @@ func NewApplication() (*Application, error) {
 		watchedRepoStore,
 		installationStore,
 		userStore,
-		APNSClient,
+		fcmClient,
 		deviceTokenStore,
 	)
 	sseHandler := ssehandlers.NewSSEHandler(hub)
@@ -121,7 +121,7 @@ func NewApplication() (*Application, error) {
 		Hub:               hub,
 		WsHub:             wsHub,
 		gitHubClient:      gitHubClient,
-		APNSClient:        APNSClient,
+		FCMClient:         fcmClient,
 		userStore:         userStore,
 		refreshTokenStore: refreshTokenStore,
 		eventStore:        eventStore,

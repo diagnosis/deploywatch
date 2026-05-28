@@ -5,11 +5,9 @@ import 'package:mobile_flutter/core/network/providers.dart';
 import '../config/app_config.dart';
 import 'token_store.dart';
 
-// WebSocket event — same shape as your Go Event struct
 class WSEvent {
   final String type;
   final String data;
-
   const WSEvent({required this.type, required this.data});
 }
 
@@ -20,11 +18,10 @@ class WebSocketService {
   StreamController<WSEvent>? _controller;
   bool _intentionallyClosed = false;
   Timer? _reconnectTimer;
+  Timer? _pingTimer; // ← class field, not local variable
 
   WebSocketService(this._tokenStore);
 
-  // The stream that the UI listens to
-  // Stream = like an async generator in JS, pushes values over time
   Stream<WSEvent> get events {
     _controller ??= StreamController<WSEvent>.broadcast();
     return _controller!.stream;
@@ -36,16 +33,22 @@ class WebSocketService {
   }
 
   Future<void> _connect() async {
+    _reconnectTimer?.cancel();
+
     final token = await _tokenStore.getAccessToken();
-    print(token);
     if (token == null) {
       print('WS: no token, aborting');
       return;
     }
 
+    // Recreate controller if closed
+    if (_controller == null || _controller!.isClosed) {
+      _controller = StreamController<WSEvent>.broadcast();
+    }
+
     final wsUrl = AppConfig.baseURL
         .trimRight()
-        .replaceAll(RegExp(r'/$'), '') // remove trailing slash
+        .replaceAll(RegExp(r'/$'), '')
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
 
@@ -58,7 +61,13 @@ class WebSocketService {
       );
       print('WS: connected!');
 
-      _controller ??= StreamController<WSEvent>.broadcast();
+      // Start ping timer ONCE after connecting
+      _pingTimer?.cancel();
+      _pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        if (_socket?.readyState == WebSocket.open) {
+          _socket?.add('ping');
+        }
+      });
 
       _socket!.listen(
             (data) {
@@ -81,12 +90,14 @@ class WebSocketService {
 
   void _onDisconnect() {
     if (_intentionallyClosed) return;
-    // Auto reconnect after 3 seconds
+    _pingTimer?.cancel();
+    _socket = null;
     _reconnectTimer = Timer(const Duration(seconds: 3), _connect);
   }
 
   void disconnect() {
     _intentionallyClosed = true;
+    _pingTimer?.cancel();
     _reconnectTimer?.cancel();
     _socket?.close();
     _controller?.close();
@@ -98,9 +109,6 @@ class WebSocketService {
 final webSocketServiceProvider = Provider<WebSocketService>((ref) {
   final tokenStore = ref.watch(tokenStoreProvider);
   final service    = WebSocketService(tokenStore);
-
-  // Automatically disconnect when the provider is disposed
   ref.onDispose(service.disconnect);
-
   return service;
 });

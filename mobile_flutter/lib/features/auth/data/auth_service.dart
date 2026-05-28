@@ -10,7 +10,7 @@ class AuthService {
   Future<bool> loginWithGithub() async{
     try{
       final result = await FlutterWebAuth2.authenticate(
-        url: '${AppConfig.baseURL}/api/auth/github/login?mobile=true'
+        url: '${AppConfig.baseURL}api/auth/github/login?mobile=true'
             '&redirect_uri=deploywatch://auth/callback',
         callbackUrlScheme: 'deploywatch', // must match your iOS URL scheme
       );

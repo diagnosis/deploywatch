@@ -100,7 +100,7 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if h.apnsClient != nil {
+	if h.fcm != nil {
 		for _, userID := range userIDs {
 			tokens, err := h.deviceTokenStore.GetByUserID(ctx, userID)
 			if err != nil {
@@ -111,7 +111,7 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 				go func(token string) {
 					title := eventType
 					body := fmt.Sprintf("%s by %s", payload.Repository.ID, payload.Sender.Login)
-					if err := h.apnsClient.Send(token, title, body); err != nil {
+					if err := h.fcm.Send(ctx, token, title, body); err != nil {
 						logger.Error(ctx, " failed to send push", "err", err)
 					}
 
