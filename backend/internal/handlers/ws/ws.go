@@ -18,7 +18,7 @@ func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request) {
 
 	userIDStr, ok := middleware.GetUserID(ctx)
 	if !ok {
-		responder.Error(w, errors.Unauthorized("unauthoerized", "unauthorized"), correlationID)
+		responder.Error(w, errors.Unauthorized("unauthorized", "unauthorized"), correlationID)
 		return
 	}
 
@@ -28,6 +28,24 @@ func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Unwrap the ResponseWriter to get the underlying http.ResponseWriter
+	// that supports http.Hijacker — needed for WebSocket upgrade
+	type unwrapper interface {
+		Unwrap() http.ResponseWriter
+	}
+
+	rw := w
+	for {
+		if _, ok := rw.(http.Hijacker); ok {
+			break
+		}
+		uw, ok := rw.(unwrapper)
+		if !ok {
+			break
+		}
+		rw = uw.Unwrap()
+	}
+
 	websocket.Handler(func(conn *websocket.Conn) {
 		client := &events.WSClient{
 			UserID: userID,
@@ -35,7 +53,6 @@ func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request) {
 		}
 
 		h.wsHub.Register(client)
-
 		defer h.wsHub.Unregister(client)
 
 		logger.Info(ctx, "ws client connected", "user_id", userID)
@@ -47,5 +64,5 @@ func (h *WSHandler) HandleWS(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-	}).ServeHTTP(w, r)
+	}).ServeHTTP(rw, r) // ← use unwrapped rw, not w
 }
