@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -109,9 +110,10 @@ func (h *WebhookHandler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			}
 			for _, t := range tokens {
 				go func(token string) {
+					fcmCtx := context.Background()
 					title := eventType
 					body := fmt.Sprintf("%s by %s", payload.Repository.ID, payload.Sender.Login)
-					if err := h.fcm.Send(ctx, token, title, body); err != nil {
+					if err := h.fcm.Send(fcmCtx, token, title, body); err != nil {
 						logger.Error(ctx, " failed to send push", "err", err)
 					}
 
