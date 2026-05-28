@@ -24,4 +24,5 @@ jobs:
             cd ~/deploywatch/backend
             git pull
             /usr/local/go/bin/go build -o bin/api ./cmd/api
-            bash ~/restart-api.sh
+            sudo systemctl restart deploywatch
+            sudo systemctl status deploywatch --no-pager
