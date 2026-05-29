@@ -16,29 +16,24 @@ class NotificationService {
       sound: true,
     );
 
-    print('Notification permission: ${settings.authorizationStatus}');
     if (settings.authorizationStatus == AuthorizationStatus.denied) return;
 
+    // Force delete cached token and get fresh one
+    await _messaging.deleteToken();
+    await Future.delayed(const Duration(seconds: 2));
+
     if (Platform.isIOS) {
-      // Retry up to 10 times with 2 second intervals
-      for (int i = 0; i < 10; i++) {
-        await Future.delayed(const Duration(seconds: 2));
-        try {
-          final fcmToken = await _messaging.getToken();
-          print('FCM token: $fcmToken');
-          if (fcmToken != null) {
-            await _registerToken(fcmToken);
-            break; // success, stop retrying
-          }
-        } catch (e) {
-          print('Attempt ${i+1} failed: $e');
-        }
+      try {
+        final fcmToken = await _messaging.getToken();
+        print('FCM token: $fcmToken');
+        if (fcmToken != null) await _registerToken(fcmToken);
+      } catch (e) {
+        print('FCM token error: $e');
       }
     }
 
-    // This fires when FCM token is ready — catches cases where APNs token arrives late
     _messaging.onTokenRefresh.listen((token) async {
-      print('FCM token via refresh: $token');
+      print('FCM token refreshed: $token');
       await _registerToken(token);
     });
 
@@ -46,7 +41,6 @@ class NotificationService {
       print('Foreground message: ${message.notification?.title}');
     });
   }
-
   Future<void> _registerToken(String token) async {
     try {
       await _apiClient.post<dynamic>('/api/device-tokens', {
