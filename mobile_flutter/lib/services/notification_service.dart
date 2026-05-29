@@ -19,17 +19,26 @@ class NotificationService {
     print('Notification permission: ${settings.authorizationStatus}');
     if (settings.authorizationStatus == AuthorizationStatus.denied) return;
 
-    // Get FCM token instead — Firebase maps this to APNs internally
-    final fcmToken = await _messaging.getToken();
-    print('FCM token: $fcmToken');
-
-    if (fcmToken != null) {
-      await _registerToken(fcmToken);
+    if (Platform.isIOS) {
+      // Retry up to 10 times with 2 second intervals
+      for (int i = 0; i < 10; i++) {
+        await Future.delayed(const Duration(seconds: 2));
+        try {
+          final fcmToken = await _messaging.getToken();
+          print('FCM token: $fcmToken');
+          if (fcmToken != null) {
+            await _registerToken(fcmToken);
+            break; // success, stop retrying
+          }
+        } catch (e) {
+          print('Attempt ${i+1} failed: $e');
+        }
+      }
     }
 
-    // Listen for token refresh
+    // This fires when FCM token is ready — catches cases where APNs token arrives late
     _messaging.onTokenRefresh.listen((token) async {
-      print('Token refreshed: $token');
+      print('FCM token via refresh: $token');
       await _registerToken(token);
     });
 

@@ -32,12 +32,29 @@ func NewPGDeviceTokenStore(pool *pgxpool.Pool) *PGDeviceTokenStore {
 }
 
 func (s *PGDeviceTokenStore) Upsert(ctx context.Context, userID uuid.UUID, token, platform string) error {
-	_, err := s.pool.Exec(ctx, `
-		INSERT INTO device_tokens (user_id, token, platform, last_seen_at)
-		VALUES ($1, $2, $3, now())
-		ON CONFLICT (token) DO UPDATE SET last_seen_at = now()
-	`, userID, token, platform)
-	return err
+	// Delete all old tokens for this user+platform, then insert new one
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `
+        DELETE FROM device_tokens WHERE user_id = $1 AND platform = $2
+    `, userID, platform)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(ctx, `
+        INSERT INTO device_tokens (user_id, token, platform, last_seen_at)
+        VALUES ($1, $2, $3, now())
+    `, userID, token, platform)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (s *PGDeviceTokenStore) GetByUserID(ctx context.Context, userID uuid.UUID) ([]DeviceToken, error) {
