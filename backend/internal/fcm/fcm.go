@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -100,7 +101,8 @@ func (c *Client) Send(ctx context.Context, deviceToken, title, body string) erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("FCM returned status %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("FCM returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	return nil
