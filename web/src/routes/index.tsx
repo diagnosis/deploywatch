@@ -10,7 +10,7 @@ import { AddRepoModal } from "@/components/app/AddRepoModel.tsx"
 import { useLogout } from "@/hooks/authHooks.ts"
 import { FaGithub, FaCodeBranch, FaTrash, FaPlus, FaBolt, FaCodePullRequest, FaComment } from 'react-icons/fa6'
 import type { Event } from "@/types/event.ts"
-import {useGithubRepos, useHasInstallation} from "@/hooks/githubHooks.ts"
+import { useHasInstallation} from "@/hooks/githubHooks.ts"
 
 const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/deploywatch/installations/new'
 
