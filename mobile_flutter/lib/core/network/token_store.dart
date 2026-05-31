@@ -1,5 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 class TokenStore {
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
@@ -7,6 +7,17 @@ class TokenStore {
 
   static const _accessKey  = 'access_token';
   static const _refreshKey = 'refresh_token';
+  static const _installedKey = 'app_installed';
+
+  Future<void> clearOnFreshInstall() async {
+    final prefs = await SharedPreferences.getInstance();
+    final installed = prefs.getBool(_installedKey) ?? false;
+    if (!installed) {
+      await _storage.deleteAll();
+      await prefs.setBool(_installedKey, true);
+    }
+  }
+
 
   Future<String?> getAccessToken()  => _storage.read(key: _accessKey);
   Future<String?> getRefreshToken() => _storage.read(key: _refreshKey);

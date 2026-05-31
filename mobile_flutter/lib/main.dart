@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'core/network/token_store.dart';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/router.dart';
@@ -10,6 +11,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Clear keychain on fresh install
+  final tokenStore = TokenStore();
+  await tokenStore.clearOnFreshInstall();
   runApp(
     const ProviderScope(
       child: DeployWatchApp(),
