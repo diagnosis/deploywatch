@@ -7,6 +7,8 @@ import '../../../core/network/providers.dart';
 import '../../repos/providers/repo_providers.dart';
 import '../providers/feed_providers.dart';
 import '../models/event_model.dart';
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -38,6 +40,35 @@ IconData eventIcon(String type) {
 
 // ── Event Card ─────────────────────────────────────────────────
 
+void _openGitHub(Event event, String repoFullName) async {
+  final url = _getGitHubUrl(event, repoFullName);
+  final uri = Uri.parse(url);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
+
+String _getGitHubUrl(Event event, String repoFullName) {
+  Map<String, dynamic> p = {};
+  try {
+    p = json.decode(event.payload) as Map<String, dynamic>;
+  } catch (_) {}
+
+  switch (event.eventType) {
+    case 'push':
+      return 'https://github.com/$repoFullName/commit/${p['after'] ?? ''}';
+    case 'pull_request':
+      return 'https://github.com/$repoFullName/pull/${p['number'] ?? ''}';
+    case 'pull_request_review':
+      final prNumber = (p['pull_request'] as Map?)?.cast<String,dynamic>()['number'];
+      return 'https://github.com/$repoFullName/pull/$prNumber';
+    case 'create':
+      return 'https://github.com/$repoFullName/tree/${p['ref'] ?? ''}';
+    default:
+      return 'https://github.com/$repoFullName';
+  }
+}
+
 class EventCard extends StatelessWidget {
   final Event event;
   final String repoFullName;
@@ -47,6 +78,7 @@ class EventCard extends StatelessWidget {
     required this.event,
     required this.repoFullName,
   });
+
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +150,7 @@ class EventCard extends StatelessWidget {
                   ],
                 ),
 
+
                 const SizedBox(height: 2),
 
                 // Actor + time
@@ -166,11 +199,32 @@ class EventCard extends StatelessWidget {
                     fontFamily: 'monospace',
                   ),
                 ),
+                GestureDetector(
+                  onTap: () => _openGitHub(event, repoFullName),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.open_in_new, size: 11, color: AppColors.primary),
+                        SizedBox(width: 4),
+                        Text(
+                          'View on GitHub',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ],
+
       ),
+
     );
   }
 }

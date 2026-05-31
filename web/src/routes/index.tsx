@@ -4,12 +4,15 @@ import { requireAuth } from "@/lib/routeGuard.ts"
 import { useSSE } from "@/hooks/useSSE.ts"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { reposQueryOptions, useRemoveRepo } from "@/hooks/repoHooks.ts"
-import {useEffect, useRef, useState} from "react"
+import { useEffect, useRef, useState } from "react"
 import { eventQueryOptions } from "@/hooks/eventHooks.ts"
 import { AddRepoModal } from "@/components/app/AddRepoModel.tsx"
 import { useLogout } from "@/hooks/authHooks.ts"
 import { FaGithub, FaCodeBranch, FaTrash, FaPlus, FaBolt, FaCodePullRequest, FaComment } from 'react-icons/fa6'
 import type { Event } from "@/types/event.ts"
+import { useGithubRepos } from "@/hooks/githubHooks.ts"
+
+const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/deploywatch/installations/new'
 
 export const Route = createFileRoute('/')({
     beforeLoad: async ({ context }) => requireAuth(context.queryClient),
@@ -48,7 +51,6 @@ function getEventURL(event: Event, repoFullName: string): string {
     try {
         let jsonStr: string
         if (typeof raw === 'string') {
-            // try base64 decode first
             try {
                 jsonStr = atob(raw)
             } catch {
@@ -60,50 +62,42 @@ function getEventURL(event: Event, repoFullName: string): string {
         return `https://github.com/${repoFullName}`
     }
     switch (event.event_type) {
-        case 'push':
-            return `https://github.com/${repoFullName}/commit/${p.after}`
-        case 'pull_request':
-            return `https://github.com/${repoFullName}/pull/${p.number}`
-        case 'pull_request_review':
-            return `https://github.com/${repoFullName}/pull/${p.pull_request?.number}`
-        case 'create':
-            return `https://github.com/${repoFullName}/tree/${p.ref}`
-        default:
-            return `https://github.com/${repoFullName}`
+        case 'push': return `https://github.com/${repoFullName}/commit/${p.after}`
+        case 'pull_request': return `https://github.com/${repoFullName}/pull/${p.number}`
+        case 'pull_request_review': return `https://github.com/${repoFullName}/pull/${p.pull_request?.number}`
+        case 'create': return `https://github.com/${repoFullName}/tree/${p.ref}`
+        default: return `https://github.com/${repoFullName}`
     }
 }
 
-function EventCard({ event, repoFullName }: {event: Event; repoFullName: string}  ) {
+function EventCard({ event, repoFullName }: { event: Event; repoFullName: string }) {
     return (
         <a href={getEventURL(event, repoFullName)} target="_blank" rel="noopener noreferrer">
-        <div className="flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.04] hover:bg-cyan-500/[0.02] transition-colors group">
-            <div className="mt-0.5 w-7 h-7 rounded-lg bg-[#0d1f2d] border border-cyan-500/10 flex items-center justify-center flex-shrink-0 group-hover:border-cyan-500/20 transition-colors">
-                {eventIcon(event.event_type)}
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white/75 text-sm font-medium">{event.event_type}</span>
-                    {event.action && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${eventBadgeColor(event.event_type)}`}>
-                            {event.action}
-                        </span>
-                    )}
+            <div className="flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.04] hover:bg-cyan-500/[0.02] transition-colors group">
+                <div className="mt-0.5 w-7 h-7 rounded-lg bg-[#0d1f2d] border border-cyan-500/10 flex items-center justify-center flex-shrink-0 group-hover:border-cyan-500/20 transition-colors">
+                    {eventIcon(event.event_type)}
                 </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                    <FaGithub size={10} className="text-white/20" />
-                    <span className="text-white/30 text-xs">{event.actor_login}</span>
-                    <span className="text-white/10 text-xs">·</span>
-                    <span className="text-white/20 text-xs">{timeAgo(event.received_at)}</span>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-white/75 text-sm font-medium">{event.event_type}</span>
+                        {event.action && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${eventBadgeColor(event.event_type)}`}>
+                                {event.action}
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                        <FaGithub size={10} className="text-white/20" />
+                        <span className="text-white/30 text-xs">{event.actor_login}</span>
+                        <span className="text-white/10 text-xs">·</span>
+                        <span className="text-white/20 text-xs">{timeAgo(event.received_at)}</span>
+                    </div>
                 </div>
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/30 mt-1.5 flex-shrink-0" />
             </div>
-            {/* Live dot */}
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/30 mt-1.5 flex-shrink-0" />
-        </div>
         </a>
     )
 }
-
-
 
 function RouteComponent() {
     useSSE()
@@ -116,29 +110,26 @@ function RouteComponent() {
     const logout = useLogout()
     const prevRepoRef = useRef(selectedRepo)
     const selectedRepoName = watchedRepos.find(r => r.repo_id === selectedRepo)?.repo_full_name
+    const { data: githubRepos = [] } = useGithubRepos()
+    const hasInstallation = githubRepos.length > 0
 
     useEffect(() => {
         if (prevRepoRef.current !== selectedRepo) {
             prevRepoRef.current = selectedRepo
             if (page !== 1) setPage(1)
         }
-    }, [page, selectedRepo]);
-
+    }, [page, selectedRepo])
 
     return (
         <div className="h-screen bg-[#080d12] flex flex-col">
-
-            {/* Ambient glow */}
             <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] bg-cyan-500/[0.03] blur-[100px] pointer-events-none" />
 
-            {/* Top bar */}
             <header className="h-12 border-b border-cyan-500/[0.08] flex items-center justify-between px-4 flex-shrink-0 relative z-10 bg-[#080d12]/80 backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-md bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
                         <FaBolt size={11} className="text-cyan-400" />
                     </div>
                     <span className="text-cyan-100/80 text-sm font-medium tracking-tight">deploywatch</span>
-                    {/* Live indicator */}
                     <div className="flex items-center gap-1 ml-2 px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
                         <div className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" />
                         <span className="text-cyan-400/70 text-[10px]">live</span>
@@ -153,8 +144,6 @@ function RouteComponent() {
             </header>
 
             <div className="flex flex-1 overflow-hidden relative z-10">
-
-                {/* Sidebar */}
                 <aside className="w-56 border-r border-cyan-500/[0.08] flex flex-col flex-shrink-0 bg-[#080d12]">
                     <div className="flex items-center justify-between px-3 py-3 border-b border-cyan-500/[0.06]">
                         <span className="text-cyan-500/40 text-[10px] uppercase tracking-widest font-semibold">Repos</span>
@@ -165,7 +154,6 @@ function RouteComponent() {
                             <FaPlus size={8} className="text-cyan-400/70" />
                         </button>
                     </div>
-
                     <div className="flex-1 overflow-y-auto py-1">
                         {watchedRepos.length === 0 ? (
                             <div className="px-3 py-8 text-center">
@@ -218,24 +206,39 @@ function RouteComponent() {
                     </div>
                 </aside>
 
-                {/* Main */}
                 <main className="flex-1 flex flex-col overflow-hidden">
-                    {/* Header */}
                     <div className="px-4 py-2.5 border-b border-cyan-500/[0.06] flex items-center gap-2 bg-[#080d12]/50">
                         <FaCodeBranch size={11} className="text-cyan-500/30" />
-                        <span className="text-white/40 text-sm font-mono">
-            {selectedRepoName ?? 'all repos'}
-        </span>
-                        <span className="text-cyan-500/40 text-xs ml-auto font-mono">
-            {events.data?.total} events
-        </span>
+                        <span className="text-white/40 text-sm font-mono">{selectedRepoName ?? 'all repos'}</span>
+                        <span className="text-cyan-500/40 text-xs ml-auto font-mono">{events.data?.total} events</span>
                     </div>
 
-                    {/* Event list */}
                     <div className="flex-1 overflow-y-auto">
                         {!events.data?.events || events.data.events.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center">
-                                ...empty state...
+                            <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                                {!hasInstallation ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-4">
+                                            <FaGithub size={20} className="text-cyan-400/60" />
+                                        </div>
+                                        <p className="text-white/50 text-sm font-medium mb-2">Install GitHub App first</p>
+                                        <p className="text-white/20 text-xs mb-6">Connect your GitHub account to start monitoring repos</p>
+                                        <a
+                                            href={GITHUB_APP_INSTALL_URL}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-4 py-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-sm hover:bg-cyan-500/30 transition-colors"
+                                        >
+                                            Install GitHub App →
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center">
+                                        <FaBolt size={32} className="text-cyan-500/20 mb-4" />
+                                        <p className="text-white/20 text-sm">No events yet</p>
+                                        <p className="text-white/10 text-xs mt-1">Watch a repo to start monitoring</p>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             events.data.events.map(event => (
@@ -247,7 +250,7 @@ function RouteComponent() {
                             ))
                         )}
                     </div>
-                    {/* Pagination */}
+
                     {events.data?.total_pages > 1 && (
                         <div className="flex items-center justify-between px-4 py-3 border-t border-cyan-500/[0.06]">
                             <button
@@ -257,9 +260,7 @@ function RouteComponent() {
                             >
                                 ← Prev
                             </button>
-                            <span className="text-white/20 text-xs font-mono">
-            {page} / {events.data.total_pages}
-        </span>
+                            <span className="text-white/20 text-xs font-mono">{page} / {events.data.total_pages}</span>
                             <button
                                 onClick={() => setPage(p => Math.min(events.data.total_pages, p + 1))}
                                 disabled={page === events.data?.total_pages}
@@ -278,6 +279,5 @@ function RouteComponent() {
                 <span className="text-white/30 text-xs">built by <span className="text-cyan-400/50">diagnosis</span></span>
             </footer>
         </div>
-
     )
 }
