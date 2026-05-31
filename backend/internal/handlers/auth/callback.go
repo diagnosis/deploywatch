@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	refreshtokenstore "github.com/diagnosis/deploywatchv2/internal/store/refreshtoken"
@@ -72,6 +73,14 @@ func (h *AuthHandler) HandleCallBack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//
+	userAgent := r.Header.Get("User-Agent")
+	platform := "web"
+	if strings.Contains(userAgent, "iPhone") || strings.Contains(userAgent, "iOS") {
+		platform = "ios"
+	} else if strings.Contains(userAgent, "Android") {
+		platform = "android"
+	}
+
 	raw, err := secure.GenerateRefreshToken()
 	if err != nil {
 		logger.Error(ctx, "failed to generate refresh token", "err", err)
@@ -82,6 +91,7 @@ func (h *AuthHandler) HandleCallBack(w http.ResponseWriter, r *http.Request) {
 	err = h.refreshTokenStore.Create(ctx, &refreshtokenstore.RefreshToken{
 		UserID:    user.ID,
 		TokenHash: hash,
+		Platform:  platform,
 		ExpiresAt: time.Now().Add(h.cfg.JWT.RefreshTokenExpiry),
 		CreatedAt: time.Now(),
 	})
@@ -99,6 +109,7 @@ func (h *AuthHandler) HandleCallBack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mobile flow
+
 	mobileCookie, err := r.Cookie("mobile_redirect")
 	if err == nil {
 		mobileRedirect := fmt.Sprintf("%s?access_token=%s&refresh_token=%s", mobileCookie.Value, token, raw)

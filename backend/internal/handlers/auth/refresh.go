@@ -39,7 +39,7 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 		responder.Error(w, err, correlationID)
 		return
 	}
-	err = h.refreshTokenStore.DeleteByUserID(ctx, refreshToken.UserID)
+	err = h.refreshTokenStore.DeleteByUserIDAndPlatform(ctx, refreshToken.UserID, "web")
 	if err != nil {
 		logger.Warn(ctx, "failed to delete old tokens", "err", err)
 	}
@@ -47,6 +47,7 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	err = h.refreshTokenStore.Create(ctx, &store.RefreshToken{
 		UserID:    refreshToken.UserID,
 		TokenHash: secure.HashRefreshToken(t),
+		Platform:  "web",
 		ExpiresAt: time.Now().Add(h.cfg.JWT.RefreshTokenExpiry),
 	})
 	if err != nil {

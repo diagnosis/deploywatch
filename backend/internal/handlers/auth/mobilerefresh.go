@@ -37,8 +37,7 @@ func (h *AuthHandler) HandleMobileRefresh(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Generate new refresh token (rotation)
-	err = h.refreshTokenStore.DeleteByUserID(ctx, rt.UserID)
+	err = h.refreshTokenStore.DeleteByUserIDAndPlatform(ctx, rt.UserID, rt.Platform)
 	if err != nil {
 		logger.Warn(ctx, "failed to delete refresh tokens", "err", err)
 	}
@@ -47,6 +46,7 @@ func (h *AuthHandler) HandleMobileRefresh(w http.ResponseWriter, r *http.Request
 	err = h.refreshTokenStore.Create(ctx, &refreshtokenstore.RefreshToken{
 		UserID:    rt.UserID,
 		TokenHash: newHash,
+		Platform:  rt.Platform,
 		ExpiresAt: time.Now().Add(h.cfg.JWT.RefreshTokenExpiry),
 		CreatedAt: time.Now(),
 	})

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import 'token_store.dart';
@@ -5,6 +7,7 @@ import 'token_store.dart';
 class ApiClient {
   late final Dio _dio;
   final TokenStore _tokenStore;
+  VoidCallback? onUnauthorized;
 
   bool _isRefreshing = false;
   final List<_RetryRequest> _queue = [];
@@ -104,6 +107,7 @@ class _AuthInterceptor extends Interceptor {
     if (newToken == null) {
       for (final r in _client._queue) r.handler.next(err);
       _client._queue.clear();
+      _client.onUnauthorized?.call(); // ← redirect to login
       handler.next(err);
       return;
     }
