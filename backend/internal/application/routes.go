@@ -32,6 +32,7 @@ func SetupRoutes(app *Application) *chi.Mux {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RequireAuth(app.authHandler.AuthFunc))
 		r.Get("/api/auth/me", app.authHandler.HandleMe)
+		r.Get("/api/installation/check", app.gitHubClientHandler.HandleCheckInstallation)
 		r.Get("/api/sse", app.sseHandler.HandleSSE)
 		r.Post("/api/repos/watch", app.watchedRepoHandler.HandleAddRepo)
 		r.Delete("/api/repos/watch/{id}", app.watchedRepoHandler.HandleRemoveRepo)

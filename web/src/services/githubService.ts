@@ -10,6 +10,5 @@ export interface GithubRepo{
 
 export const githubService = {
     listRepos: () => apiClient.get<GithubRepo[]>('/api/github/repos'),
-    hasInstallation: () =>
-        apiClient.get<{installed:boolean}>('/api/github/repos')
+    checkInstallation: () => apiClient.get<{ installed: boolean }>('/api/github/installation'),
 }

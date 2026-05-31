@@ -10,7 +10,7 @@ import { AddRepoModal } from "@/components/app/AddRepoModel.tsx"
 import { useLogout } from "@/hooks/authHooks.ts"
 import { FaGithub, FaCodeBranch, FaTrash, FaPlus, FaBolt, FaCodePullRequest, FaComment } from 'react-icons/fa6'
 import type { Event } from "@/types/event.ts"
-import { useGithubRepos } from "@/hooks/githubHooks.ts"
+import {useGithubRepos, useHasInstallation} from "@/hooks/githubHooks.ts"
 
 const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/deploywatch/installations/new'
 
@@ -110,8 +110,7 @@ function RouteComponent() {
     const logout = useLogout()
     const prevRepoRef = useRef(selectedRepo)
     const selectedRepoName = watchedRepos.find(r => r.repo_id === selectedRepo)?.repo_full_name
-    const { data: githubRepos = [] } = useGithubRepos()
-    const hasInstallation = githubRepos.length > 0
+    const { data: hasInstallation = false } = useHasInstallation()
 
     useEffect(() => {
         if (prevRepoRef.current !== selectedRepo) {
