@@ -240,23 +240,31 @@ class FeedScreen extends ConsumerStatefulWidget {
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends ConsumerState<FeedScreen> {
+class _FeedScreenState extends ConsumerState<FeedScreen> with WidgetsBindingObserver {
   bool _showRepoPicker = false;
   Timer? _timer;
 
-
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_){
+    WidgetsBinding.instance.addObserver(this);
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(hasInstallationProvider);
+    }
   }
 
   @override
@@ -450,40 +458,54 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 data: (response) {
                   final installed = hasInstallation.valueOrNull ?? true;
                   if (!installed) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.integration_instructions_outlined, size: 48, color: AppColors.primary),
-                            const SizedBox(height: 16),
-                            const Text('Install GitHub App first',
-                                style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 8),
-                            const Text('Connect your GitHub account to start monitoring repos',
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                                textAlign: TextAlign.center),
-                            const SizedBox(height: 24),
-                            GestureDetector(
-                              onTap: () async {
-                                final uri = Uri.parse('https://github.com/apps/deploywatch/installations/new');
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryDim,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AppColors.primary),
-                                ),
-                                child: const Text('Install GitHub App →',
-                                    style: TextStyle(color: AppColors.primary, fontSize: 14)),
+                    return RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () async {
+                        ref.invalidate(hasInstallationProvider);
+                        await ref.read(hasInstallationProvider.future);
+                      },
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.7,
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.integration_instructions_outlined, size: 48, color: AppColors.primary),
+                                  const SizedBox(height: 16),
+                                  const Text('Install GitHub App first',
+                                      style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 8),
+                                  const Text('Connect your GitHub account to start monitoring repos',
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                      textAlign: TextAlign.center),
+                                  const SizedBox(height: 24),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final uri = Uri.parse('https://github.com/apps/deploywatch/installations/new');
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryDim,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: AppColors.primary),
+                                      ),
+                                      child: const Text('Install GitHub App →',
+                                          style: TextStyle(color: AppColors.primary, fontSize: 14)),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+
                     );
                   }
                   if (response.events.isEmpty) {
