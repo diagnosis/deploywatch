@@ -35,6 +35,10 @@ final meProvider = FutureProvider<User>((ref) async {
   final data   = await client.get<Map<String, dynamic>>('/api/auth/me');
   return User.fromJson(data['user'] as Map<String, dynamic>);
 });
+final deleteAccountProvider = FutureProvider.autoDispose<void>((ref) async {
+  final client = ref.watch(apiClientProvider);
+  await client.delete<Map<String, dynamic>>('/api/auth/account');
+});
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -196,8 +200,58 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
+
+// Delete account button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      // Show confirmation dialog
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: AppColors.surface,
+                          title: const Text('Delete Account',
+                              style: TextStyle(color: AppColors.textPrimary)),
+                          content: const Text(
+                              'This will permanently delete your account and all data. This cannot be undone.',
+                              style: TextStyle(color: AppColors.textSecondary)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: AppColors.textSecondary)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Delete',
+                                  style: TextStyle(color: AppColors.error)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm != true) return;
+                      final client = ref.read(apiClientProvider);
+                      await client.delete<Map<String, dynamic>>('/api/auth/account');
+                      await ref.read(authProvider.notifier).logout();
+                      if (context.mounted) context.go('/login');
+                    },
+                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                    label: const Text('Delete Account',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.error)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'deploywatch v1.0.0',
                 style: TextStyle(
@@ -205,6 +259,8 @@ class ProfileScreen extends ConsumerWidget {
                   fontSize: 12,
                 ),
               ),
+
+
 
               const SizedBox(height: 24),
             ],

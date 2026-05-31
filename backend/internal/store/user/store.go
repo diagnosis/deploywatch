@@ -27,6 +27,7 @@ type UserStore interface {
 	UpsertUser(context.Context, *User) (*User, error)
 	GetUserByID(context.Context, uuid.UUID) (*User, error)
 	GetUserByLogin(ctx context.Context, login string) (*User, error)
+	DeleteUser(ctx context.Context, userID uuid.UUID) error
 }
 
 type PGUserStore struct {
@@ -102,4 +103,9 @@ func (s *PGUserStore) GetUserByLogin(ctx context.Context, login string) (*User, 
 	}
 	return &u, nil
 
+}
+
+func (s *PGUserStore) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, userID)
+	return err
 }

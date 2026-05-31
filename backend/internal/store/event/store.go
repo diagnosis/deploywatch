@@ -25,6 +25,7 @@ type EventStore interface {
 	Create(context.Context, *Event) (*Event, error)
 	ListByRepoIDs(ctx context.Context, repoIDs []int64, limit, offset int) ([]Event, error)
 	CountByRepoIDs(ctx context.Context, repoIDS []int64) (int, error)
+	DeleteOldEvents(ctx context.Context) error
 }
 
 type PGEventStore struct {
@@ -94,4 +95,9 @@ func (s *PGEventStore) CountByRepoIDs(ctx context.Context, repoIDs []int64) (int
 		return 0, err
 	}
 	return count, nil
+}
+
+func (s *PGEventStore) DeleteOldEvents(ctx context.Context) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM events WHERE received_at < now() - interval '7 days'`)
+	return err
 }

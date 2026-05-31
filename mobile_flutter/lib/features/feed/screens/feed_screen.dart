@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_flutter/features/github/github_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/network/providers.dart';
 import '../../repos/providers/repo_providers.dart';
@@ -235,7 +236,6 @@ class EventCard extends StatelessWidget {
 // AND we need to read providers
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
-
   @override
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
 }
@@ -243,6 +243,7 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   bool _showRepoPicker = false;
   Timer? _timer;
+
 
   @override
   void initState(){
@@ -265,6 +266,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final reposAsync   = ref.watch(watchedReposProvider);
     final selectedRepo = ref.watch(selectedRepoIdProvider);
     final currentPage  = ref.watch(currentPageProvider);
+    final hasInstallation = ref.watch(hasInstallationProvider);
     ref.watch(sseNotifierProvider);
     final repos = reposAsync.valueOrNull ?? [];
 
@@ -446,6 +448,44 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   ),
                 ),
                 data: (response) {
+                  final installed = hasInstallation.valueOrNull ?? true;
+                  if (!installed) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.integration_instructions_outlined, size: 48, color: AppColors.primary),
+                            const SizedBox(height: 16),
+                            const Text('Install GitHub App first',
+                                style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            const Text('Connect your GitHub account to start monitoring repos',
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                textAlign: TextAlign.center),
+                            const SizedBox(height: 24),
+                            GestureDetector(
+                              onTap: () async {
+                                final uri = Uri.parse('https://github.com/apps/deploywatch/installations/new');
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryDim,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.primary),
+                                ),
+                                child: const Text('Install GitHub App →',
+                                    style: TextStyle(color: AppColors.primary, fontSize: 14)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
                   if (response.events.isEmpty) {
                     return const Center(
                       child: Column(

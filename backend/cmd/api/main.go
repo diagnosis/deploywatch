@@ -41,8 +41,11 @@ func main() {
 		WriteTimeout:      0,                // no write timeout — required for SSE
 		IdleTimeout:       120 * time.Second,
 	}
+
+	app.StartEventCleanup()
 	go app.Hub.Run(ctx)
 	go app.WsHub.Run(ctx)
+
 	go func() {
 		logger.Info(ctx, "server starting", "addr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
