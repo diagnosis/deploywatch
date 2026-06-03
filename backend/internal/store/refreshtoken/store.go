@@ -38,9 +38,11 @@ func NewPGRefreshTokenStore(pool *pgxpool.Pool) *PGRefreshTokenStore {
 
 func (s *PGRefreshTokenStore) Create(ctx context.Context, token *RefreshToken) error {
 	q := `INSERT INTO user_refresh_tokens 
-			(user_id, token_hash, platform, expires_at)
-			VALUES 
-			    ($1, $2, $3, $4)`
+          (user_id, token_hash, platform, expires_at)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (user_id, platform) DO UPDATE SET
+              token_hash = EXCLUDED.token_hash,
+              expires_at = EXCLUDED.expires_at`
 	_, err := s.pool.Exec(ctx, q, token.UserID, token.TokenHash, token.Platform, token.ExpiresAt)
 	return err
 }
