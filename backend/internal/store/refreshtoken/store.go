@@ -46,7 +46,8 @@ func (s *PGRefreshTokenStore) Create(ctx context.Context, token *RefreshToken) e
 }
 
 func (s *PGRefreshTokenStore) GetByTokenHash(ctx context.Context, hash string) (*RefreshToken, error) {
-	q := `SELECT * FROM user_refresh_tokens 
+	q := `SELECT id, user_id, token_hash, platform, expires_at, created_at
+         FROM user_refresh_tokens 
          WHERE token_hash = $1 AND expires_at > now()`
 	row := s.pool.QueryRow(ctx, q, hash)
 	var t RefreshToken
@@ -68,7 +69,8 @@ func (s *PGRefreshTokenStore) GetByTokenHash(ctx context.Context, hash string) (
 }
 
 func (s *PGRefreshTokenStore) GetByTokenHashAndPlatform(ctx context.Context, hash string, platform string) (*RefreshToken, error) {
-	q := `SELECT * FROM user_refresh_tokens 
+	q := `SELECT id, user_id, token_hash, platform, expires_at, created_at
+         FROM user_refresh_tokens 
          WHERE token_hash = $1 AND platform = $2 AND expires_at > now()`
 	row := s.pool.QueryRow(ctx, q, hash, platform)
 	var t RefreshToken
