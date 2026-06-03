@@ -24,6 +24,7 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	hash := secure.HashRefreshToken(c.Value)
 	refreshToken, err := h.refreshTokenStore.GetByTokenHash(ctx, hash)
 	if err != nil {
+		logger.Error(ctx, "failed to get refresh token", "err", err)
 		responder.Error(w, err, correlationID)
 		return
 	}
