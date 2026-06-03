@@ -2,7 +2,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {FaGithub, FaBell, FaBolt, FaCodeBranch, FaSignal} from 'react-icons/fa'
 import { BASE_URL } from '@/lib/config.ts'
+import {requireGuest} from "@/lib/routeGuard.ts";
 export const Route = createFileRoute('/login')({
+    beforeLoad: async ({context})  => requireGuest(context.queryClient),
     component: LoginPage,
 })
 
