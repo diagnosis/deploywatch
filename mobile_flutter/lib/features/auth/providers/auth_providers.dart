@@ -1,5 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/providers.dart';
+import '../../feed/providers/feed_providers.dart';
+import '../../github/github_providers.dart';
+import '../../profile/screens/profile_screen.dart';
+import '../../repos/providers/repo_providers.dart';
 import '../data/auth_service.dart';
 
 // AuthService provider — depends on tokenStore
@@ -31,6 +35,10 @@ class AuthNotifier extends AsyncNotifier<bool> {
     final authService = ref.read(authServiceProvider);
     final success = await authService.loginWithGithub();
     if (success) {
+      ref.invalidate(watchedReposProvider);
+      ref.invalidate(eventsProvider);
+      ref.invalidate(hasInstallationProvider);
+      ref.invalidate(meProvider);
       state = const AsyncValue.data(true);
       await ref.read(notificationServiceProvider).initialize();
     }

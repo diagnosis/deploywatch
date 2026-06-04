@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/network/providers.dart';
 import '../../auth/providers/auth_providers.dart';
@@ -257,6 +258,20 @@ class ProfileScreen extends ConsumerWidget {
                 style: TextStyle(
                   color: AppColors.textDim,
                   fontSize: 12,
+                ),
+              ),
+              GestureDetector(
+                onTap: () async {
+                  final uri = Uri.parse('https://gist.githubusercontent.com/diagnosis/7904a39226032ee521d7f93b026f58d0/raw/6e01f56eb2602b480d2740b6070fc553db648a15/privacy-policy.md');
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+                child: const Text(
+                  'Privacy Policy',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
 
