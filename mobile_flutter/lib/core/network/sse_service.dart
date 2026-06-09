@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:mobile_flutter/core/network/api_client.dart';
 import '../config/app_config.dart';
 import 'token_store.dart';
 import 'providers.dart';
@@ -14,13 +15,14 @@ class SSEEvent {
 
 class SSEService {
   final TokenStore _tokenStore;
+  final ApiClient _apiClient;
 
   StreamController<SSEEvent>? _controller;
   http.Client? _client;
   bool _intentionallyClosed = false;
   Timer? _reconnectTimer;
 
-  SSEService(this._tokenStore);
+  SSEService(this._tokenStore, this._apiClient);
 
   Stream<SSEEvent> get events {
     _controller ??= StreamController<SSEEvent>.broadcast();
@@ -58,6 +60,16 @@ class SSEService {
       final response = await _client!.send(request);
 
       if (response.statusCode != 200) {
+        if (response.statusCode == 401) {
+          print('SSE: 401, refreshing token...');
+          final newToken = await _apiClient.refresh();
+          if (newToken != null) {
+            await _connect();
+          } else {
+            _intentionallyClosed = true; // logout handled by apiClient
+          }
+          return;
+        }
         print('SSE: bad status ${response.statusCode}');
         _onDisconnect();
         return;
@@ -117,7 +129,8 @@ class SSEService {
 
 final sseServiceProvider = Provider<SSEService>((ref) {
   final tokenStore = ref.watch(tokenStoreProvider);
-  final service = SSEService(tokenStore);
+  final apiClient = ref.watch(apiClientProvider);
+  final service = SSEService(tokenStore, apiClient);
   ref.onDispose(service.disconnect);
   return service;
 });

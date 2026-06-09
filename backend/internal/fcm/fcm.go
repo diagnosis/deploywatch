@@ -26,6 +26,16 @@ type fcmMessage struct {
 type message struct {
 	Token        string       `json:"token"`
 	Notification notification `json:"notification"`
+	APNS         apnsConfig   `json:"apns"`
+}
+type apnsConfig struct {
+	Payload apnsPayload `json:"payload"`
+}
+type apnsPayload struct {
+	APS apsDict `json:"aps"`
+}
+type apsDict struct {
+	Badge int `json:"badge"`
 }
 
 type notification struct {
@@ -69,6 +79,11 @@ func (c *Client) Send(ctx context.Context, deviceToken, title, body string) erro
 			Notification: notification{
 				Title: title,
 				Body:  body,
+			},
+			APNS: apnsConfig{
+				Payload: apnsPayload{
+					APS: apsDict{Badge: 1},
+				},
 			},
 		},
 	}

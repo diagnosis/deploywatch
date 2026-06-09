@@ -46,7 +46,7 @@ class ApiClient {
 
   Future<String?> _getAccessToken() => _tokenStore.getAccessToken();
 
-  Future<String?> _refresh() async {
+  Future<String?> refresh() async {
     final refreshToken = await _tokenStore.getRefreshToken();
     if (refreshToken == null) return null;
     try {
@@ -102,7 +102,7 @@ class _AuthInterceptor extends Interceptor {
       return;
     }
     _client._isRefreshing = true;
-    final newToken = await _client._refresh();
+    final newToken = await _client.refresh();
     _client._isRefreshing = false;
     if (newToken == null) {
       for (final r in _client._queue) r.handler.next(err);
